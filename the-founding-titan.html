@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Founding Titan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@900&family=Cinzel:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    overflow: hidden;
+    cursor: none;
+    font-family: 'Cinzel', serif;
+  }
+
+  canvas {
+    display: block;
+    position: fixed;
+    top: 0; left: 0;
+    image-rendering: crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+  }
+
+  #ui {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    pointer-events: none;
+    padding: 28px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  #title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(14px, 2vw, 22px);
+    color: #c8a96e;
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 30px rgba(200,169,110,0.6), 0 0 60px rgba(200,169,110,0.3);
+    line-height: 1.3;
+  }
+
+  #title span {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 0.55em;
+    color: #8a7255;
+    letter-spacing: 0.3em;
+    margin-top: 4px;
+  }
+
+  #legend {
+    font-size: 11px;
+    color: #5a4a35;
+    letter-spacing: 0.15em;
+    text-align: right;
+    line-height: 2;
+    text-transform: uppercase;
+  }
+  #legend b { color: #c8a96e; }
+
+  /* Quality badge */
+  #quality-badge {
+    position: fixed;
+    bottom: 60px; right: 18px;
+    z-index: 10;
+    pointer-events: none;
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    letter-spacing: 0.25em;
+    writing-mode: vertical-rl;
+    transition: color 0.3s;
+  }
+
+  .scanlines {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px
+    );
+  }
+
+  .vignette {
+    position: fixed; inset: 0; z-index: 6; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.92) 100%);
+  }
+
+  #status {
+    position: fixed;
+    bottom: 30px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    font-size: 11px; letter-spacing: 0.3em;
+    color: #3a2e20; text-transform: uppercase;
+    animation: fadePulse 3s ease-in-out infinite;
+    white-space: nowrap;
+    transition: color 0.3s, opacity 0.3s;
+  }
+
+  #developer {
+    position: fixed;
+    bottom: 14px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    font-family: 'Cinzel', serif;
+    font-size: 9px; letter-spacing: 0.25em;
+    color: #c8a96e; text-transform: uppercase;
+    white-space: nowrap;
+    animation: devGlow 2.5s ease-in-out infinite;
+  }
+
+  @keyframes devGlow {
+    0%,100% {
+      opacity: 0.75;
+      text-shadow:
+        0 0 8px rgba(200,169,110,0.8),
+        0 0 18px rgba(200,169,110,0.5),
+        0 0 35px rgba(200,140,60,0.3);
+    }
+    50% {
+      opacity: 1;
+      text-shadow:
+        0 0 10px rgba(255,210,120,1),
+        0 0 22px rgba(200,169,110,0.85),
+        0 0 45px rgba(200,140,60,0.55),
+        0 0 80px rgba(180,110,30,0.3);
+    }
+  }
+
+  @keyframes fadePulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+  /* Mobile health toggle button */
+  #mobile-health-btn {
+    display: none;
+    position: fixed;
+    bottom: 28px;
+    right: 18px;
+    z-index: 20;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #c8a96e;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(200,169,110,0.35);
+    border-radius: 6px;
+    padding: 9px 14px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 10px rgba(200,169,110,0.1);
+    user-select: none;
+  }
+  #mobile-health-btn.active {
+    color: #ffe49a;
+    border-color: rgba(232,201,126,0.75);
+    background: rgba(30,20,5,0.75);
+    box-shadow: 0 0 14px rgba(232,201,126,0.35), 0 0 30px rgba(200,169,110,0.15);
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+
+<div id="ui">
+  <div id="title">
+    Founding Titan
+    <span>Ymir's Curse · Year 854</span>
+  </div>
+  <div id="legend">
+    <b>Click</b> — Rumbling
+  </div>
+</div>
+<div id="status">Move your cursor to awaken the Founding Titan</div>
+<div id="developer">Developer: Ujjawal Sharma</div>
+<div id="quality-badge"></div>
+<button id="mobile-health-btn">⚔ Health</button>
+
+<script>
+// ============================================================
+// DEVICE DETECTION & QUALITY SETTINGS
+// ============================================================
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  || (window.innerWidth <= 768 && 'ontouchstart' in window);
+
+// Quality profile
+const Q = isMobile ? {
+  label:        'LOW · MOBILE',
+  labelColor:   'rgba(150,120,80,0.4)',
+  DPR:          1,                       // always 1 on mobile
+  shadowBlur:   0,                       // shadows OFF (big perf win)
+  starCount:    40,
+  particleMax:  25,
+  particleMult: 0.4,
+  imgSmooth:    false,
+  glowRadius:   120,
+  scanlines:    false,
+} : {
+  label:        'HD · DESKTOP',
+  labelColor:   'rgba(200,169,110,0.55)',
+  DPR:          Math.min(window.devicePixelRatio || 1, 3), // up to 3x on retina
+  shadowBlur:   true,
+  starCount:    180,
+  particleMax:  120,
+  particleMult: 1.0,
+  imgSmooth:    true,
+  glowRadius:   280,
+  scanlines:    true,
+};
+
+// Show quality label
+const qBadge = document.getElementById('quality-badge');
+qBadge.textContent = Q.label;
+qBadge.style.color = Q.labelColor;
+
+// Hide scanlines on mobile for perf
+if (!Q.scanlines) document.querySelector('.scanlines').style.display = 'none';
+
+// ============================================================
+// CANVAS SETUP  — fixed aspect ratio logic
+// ============================================================
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let W = window.innerWidth;
+let H = window.innerHeight;
+
+// We keep a "logical" aspect ratio of the screen but render at native resolution
+// on desktop (full DPR) and at 1x on mobile.
+function resizeCanvas() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width  = Math.round(W * Q.DPR);
+  canvas.height = Math.round(H * Q.DPR);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(Q.DPR, 0, 0, Q.DPR, 0, 0);
+  ctx.imageSmoothingEnabled = Q.imgSmooth;
+  if (Q.imgSmooth) ctx.imageSmoothingQuality = 'high';
+}
+resizeCanvas();
+window.addEventListener('resize', () => { resizeCanvas(); });
+
+// ============================================================
+// SHADOW HELPER — respects quality
+// ============================================================
+function setShadow(blur, color) {
+  if (!Q.shadowBlur) {
+    ctx.shadowBlur = 0;
+    return;
+  }
+  ctx.shadowBlur  = blur;
+  ctx.shadowColor = color;
+}
+function clearShadow() { ctx.shadowBlur = 0; }
+
+// ============================================================
+// MOUSE / TOUCH
+// ============================================================
+const mouse = {
+  rawX: W / 2, rawY: H / 2,
+  inside: false,
+  clicking: false,
+};
+
+document.addEventListener('mousemove', e => {
+  mouse.rawX   = e.clientX;
+  mouse.rawY   = e.clientY;
+  mouse.inside = true;
+});
+document.addEventListener('mouseleave', () => { mouse.inside = false; });
+document.addEventListener('mousedown',  () => { mouse.clicking = true; });
+document.addEventListener('mouseup',    () => { mouse.clicking = false; });
+
+window.addEventListener('touchmove', e => {
+  e.preventDefault();
+  mouse.rawX   = e.touches[0].clientX;
+  mouse.rawY   = e.touches[0].clientY;
+  mouse.inside = true;
+}, { passive: false });
+window.addEventListener('touchstart', e => {
+  mouse.rawX   = e.touches[0].clientX;
+  mouse.rawY   = e.touches[0].clientY;
+  mouse.inside = true;
+  triggerRumble();
+});
+
+// ============================================================
+// FOUNDING TITAN DEFINITION
+// ============================================================
+const DEF = {
+  boneCol:      [220, 205, 168],
+  glowCol:      [200, 165, 100],
+  spineCount:   44,
+  spineSpacing: 16,
+  scale:        0.92,
+  limbs: [
+    { si: 5,  ul: 52, ll: 46, arm: true },
+    { si: 12, ul: 60, ll: 54 },
+    { si: 18, ul: 65, ll: 58 },
+    { si: 24, ul: 62, ll: 56 },
+    { si: 30, ul: 55, ll: 50 },
+    { si: 36, ul: 44, ll: 40 },
+  ],
+  ribStart: 6, ribEnd: 28,
+  tailLen: 50, tailSpikes: 7,
+  attackRange:       140,
+  attackCooldownMax: 130,
+};
+const sc = DEF.scale;
+const d  = DEF;
+
+// ============================================================
+// SPINE / LEGS
+// ============================================================
+const spine = [];
+for (let i = 0; i < d.spineCount; i++) {
+  spine.push({ x: W/2 - i * d.spineSpacing * sc, y: H/2, angle: 0 });
+}
+
+const legsData = [];
+d.limbs.forEach(cfg => {
+  for (const side of [-1, 1]) {
+    const jt = spine[cfg.si] || spine[spine.length - 1];
+    legsData.push({
+      si: cfg.si, side,
+      ul: cfg.ul * sc, ll: cfg.ll * sc,
+      arm: !!cfg.arm,
+      footX:   jt.x + side * 60 * sc,
+      footY:   jt.y + 50 * sc,
+      targetX: 0, targetY: 0,
+      stepTimer: 0,
+    });
+  }
+});
+legsData.forEach(l => { l.targetX = l.footX; l.targetY = l.footY; });
+
+// ============================================================
+// WANDER STATE
+// ============================================================
+let wanderTX    = W / 2;
+let wanderTY    = H / 2;
+let wanderTimer = 0;
+
+function pickWanderTarget() {
+  const pad   = 120;
+  wanderTX    = pad + Math.random() * (W - pad * 2);
+  wanderTY    = pad + Math.random() * (H - pad * 2);
+  wanderTimer = 100 + Math.random() * 160;
+}
+pickWanderTarget();
+
+// ============================================================
+// ATTACK / HURT STATE
+// ============================================================
+let attackAnim     = 0;
+let attackTimer    = 0;
+let attackCooldown = 60;
+let hurtFlash      = 0;
+let walkCycle      = 0;
+
+// ============================================================
+// CURSOR DAMAGE STATE
+// ============================================================
+const CURSOR_MAX_HP        = 3;
+const CURSOR_RESPAWN_FRAMES = 90;
+let cursorHp           = CURSOR_MAX_HP;
+let cursorDead         = false;
+let cursorRespawnTimer = 0;
+let cursorHurtFlash    = 0;
+let cursorShield       = 0;
+
+// ============================================================
+// GLOBAL FX STATE
+// ============================================================
+let shakeX = 0, shakeY = 0, shakeIntensity = 0;
+const particles = [];
+
+function spawnParticles(arr) {
+  // Limit total particles on mobile
+  const limit = Q.particleMax;
+  for (const p of arr) {
+    if (particles.length < limit) particles.push(p);
+  }
+}
+
+// ============================================================
+// TITAN HEALTH
+// ============================================================
+const TITAN_MAX_HP         = 500;
+let titanHp                = TITAN_MAX_HP;
+let titanDead              = false;
+let titanRespawnTimer      = 0;
+const TITAN_RESPAWN_FRAMES = 90;
+let showHealth             = false;
+
+// F5 hint
+const f5hint = document.createElement('div');
+f5hint.style.cssText = `
+  position:fixed; top:50%; right:20px; transform:translateY(-50%);
+  z-index:10; pointer-events:none;
+  font-family:'Cinzel',serif; font-size:7px; letter-spacing:0.25em;
+  color:rgba(200,169,110,0.35); writing-mode:vertical-rl;
+  transition:color 0.3s, text-shadow 0.3s;
+`;
+f5hint.textContent = isMobile ? 'TAP · HEALTH' : 'F5 · HEALTH';
+document.body.appendChild(f5hint);
+
+// Mobile health toggle button
+const mobileHealthBtn = document.getElementById('mobile-health-btn');
+if (isMobile) {
+  mobileHealthBtn.style.display = 'block';
+}
+
+function toggleHealth() {
+  showHealth = !showHealth;
+  // Sync f5hint style
+  f5hint.style.color      = showHealth ? 'rgba(232,201,126,0.9)' : 'rgba(200,169,110,0.35)';
+  f5hint.style.textShadow = showHealth ? '0 0 12px rgba(232,201,126,0.8), 0 0 25px rgba(200,169,110,0.5)' : 'none';
+  // Sync button style
+  if (showHealth) mobileHealthBtn.classList.add('active');
+  else            mobileHealthBtn.classList.remove('active');
+}
+
+mobileHealthBtn.addEventListener('touchstart', e => {
+  e.preventDefault();
+  toggleHealth();
+}, { passive: false });
+mobileHealthBtn.addEventListener('click', toggleHealth);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'F5' || e.code === 'F5') {
+    e.preventDefault();
+    toggleHealth();
+  }
+});
+
+// ============================================================
+// SPINE UPDATE
+// ============================================================
+function updateSpine(tx, ty, speed) {
+  const head = spine[0];
+  head.x += (tx - head.x) * Math.min(speed, 0.09);
+  head.y += (ty - head.y) * Math.min(speed, 0.09);
+
+  for (let i = 1; i < d.spineCount; i++) {
+    const p = spine[i - 1], c = spine[i];
+    const ddx = c.x - p.x, ddy = c.y - p.y;
+    const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+    const f = (dist - d.spineSpacing * sc) / dist;
+    c.x -= ddx * f * 0.5;
+    c.y -= ddy * f * 0.5;
+    c.angle = Math.atan2(ddy, ddx);
+  }
+
+  walkCycle += 0.1;
+
+  legsData.forEach(leg => {
+    const jt = spine[leg.si] || spine[spine.length - 1];
+    const sa = (spine[Math.min(leg.si, d.spineCount - 2)] || { angle: 0 }).angle;
+    const pa = sa + Math.PI / 2;
+    const rd = leg.arm ? 72 : 88;
+    const rx = jt.x + Math.cos(pa) * leg.side * rd * sc * 0.6 + Math.cos(sa + Math.PI) * 16 * sc;
+    const ry = jt.y + Math.sin(pa) * leg.side * rd * sc * 0.6 + Math.sin(sa + Math.PI) * 16 * sc + (leg.arm ? -30 : 42) * sc;
+    const ddx = rx - leg.footX, ddy = ry - leg.footY;
+    if (Math.sqrt(ddx * ddx + ddy * ddy) > 52 * sc && leg.stepTimer <= 0) {
+      leg.stepTimer = 13;
+      leg.targetX   = rx + (Math.random() - 0.5) * 10;
+      leg.targetY   = ry + (Math.random() - 0.5) * 10;
+    }
+    if (leg.stepTimer > 0) {
+      leg.stepTimer--;
+      const lh = Math.sin((1 - leg.stepTimer / 13) * Math.PI) * 26 * sc;
+      leg.footX += (leg.targetX - leg.footX) * 0.14;
+      leg.footY += (leg.targetY - leg.footY) * 0.14 - lh * 0.14;
+    }
+  });
+}
+
+// ============================================================
+// ATTACK ANIM TICK
+// ============================================================
+function tickAttackAnim() {
+  if (attackAnim === 0) return;
+  attackTimer++;
+  if      (attackAnim === 1 && attackTimer >= 18) { attackAnim = 2; attackTimer = 0; doHitCheck(); }
+  else if (attackAnim === 2 && attackTimer >= 10) { attackAnim = 3; attackTimer = 0; }
+  else if (attackAnim === 3 && attackTimer >= 22) { attackAnim = 0; attackTimer = 0; }
+}
+
+function doHitCheck() {
+  if (cursorDead || cursorShield > 0) return;
+  if (!mouse.inside) return;
+  const hx = spine[0].x, hy = spine[0].y;
+  const dx = mouse.rawX - hx, dy = mouse.rawY - hy;
+  if (Math.sqrt(dx * dx + dy * dy) < d.attackRange * 1.2) damageCursor();
+}
+
+// ============================================================
+// CURSOR DAMAGE / DEATH / RESPAWN
+// ============================================================
+function damageCursor() {
+  cursorHp--;
+  cursorHurtFlash = 22;
+  shakeIntensity  = Math.max(shakeIntensity, 10);
+
+  const count = Math.round(18 * Q.particleMult);
+  const arr = [];
+  for (let i = 0; i < count; i++) {
+    arr.push({ x: mouse.rawX, y: mouse.rawY, vx: (Math.random()-0.5)*11, vy: (Math.random()-0.5)*11-2, life: 1, size: Math.random()*4+1.5, col: [255,70,50] });
+  }
+  spawnParticles(arr);
+
+  if (cursorHp <= 0) {
+    cursorDead         = true;
+    cursorRespawnTimer = CURSOR_RESPAWN_FRAMES;
+    shakeIntensity     = 24;
+    const arr2 = [];
+    const c2 = Math.round(40 * Q.particleMult);
+    for (let i = 0; i < c2; i++) {
+      arr2.push({ x: mouse.rawX, y: mouse.rawY, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15-3, life: 1, size: Math.random()*5.5+2, col: Math.random()<0.5?[255,50,30]:[255,200,80] });
+    }
+    spawnParticles(arr2);
+  }
+}
+
+function tickCursor() {
+  if (cursorHurtFlash > 0) cursorHurtFlash--;
+  if (cursorShield    > 0) cursorShield--;
+
+  if (cursorDead) {
+    cursorRespawnTimer--;
+    if (cursorRespawnTimer <= 0) {
+      cursorDead      = false;
+      cursorHp        = CURSOR_MAX_HP;
+      cursorHurtFlash = 0;
+      cursorShield    = 80;
+      const c = Math.round(22 * Q.particleMult);
+      const arr = [];
+      for (let i = 0; i < c; i++) arr.push({ x: mouse.rawX, y: mouse.rawY, vx: (Math.random()-0.5)*9, vy: (Math.random()-0.5)*9, life: 1, size: Math.random()*3+1, col: [200,169,110] });
+      spawnParticles(arr);
+    }
+  }
+}
+
+// ============================================================
+// TITAN ATTACK AI
+// ============================================================
+function tickAttackAI() {
+  if (attackAnim !== 0) return;
+  if (attackCooldown > 0) { attackCooldown--; return; }
+  if (!mouse.inside || cursorDead || titanDead) return;
+
+  const hx = spine[0].x, hy = spine[0].y;
+  const dx = mouse.rawX - hx, dy = mouse.rawY - hy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist < d.attackRange) {
+    attackAnim     = 1;
+    attackTimer    = 0;
+    attackCooldown = d.attackCooldownMax + Math.floor(Math.random() * 50);
+    shakeIntensity = Math.max(shakeIntensity, 5);
+  }
+}
+
+// ============================================================
+// RUMBLE (click)
+// ============================================================
+function triggerRumble() {
+  shakeIntensity = 14;
+  playRumble();
+  const c = Math.round(22 * Q.particleMult);
+  const arr = [];
+  for (let i = 0; i < c; i++) arr.push({ x: spine[0].x, y: spine[0].y, vx: (Math.random()-0.5)*9, vy: (Math.random()-0.5)*9-3, life: 1, size: Math.random()*4+1, col: [200,169,110] });
+  spawnParticles(arr);
+}
+
+// ============================================================
+// AUDIO
+// ============================================================
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playRumble() {
+  try {
+    const ac  = getAudioCtx();
+    const dur = 1.4;
+    const osc1 = ac.createOscillator(), osc2 = ac.createOscillator();
+    const gain = ac.createGain(), dist = ac.createWaveShaper();
+    const curve = new Float32Array(256);
+    for (let i = 0; i < 256; i++) { const x = (i*2)/256-1; curve[i] = (Math.PI+180)*x/(Math.PI+180*Math.abs(x)); }
+    dist.curve = curve;
+    osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(38, ac.currentTime); osc1.frequency.exponentialRampToValueAtTime(18, ac.currentTime+dur);
+    osc2.type = 'sine';     osc2.frequency.setValueAtTime(55, ac.currentTime); osc2.frequency.exponentialRampToValueAtTime(22, ac.currentTime+dur*0.8);
+    gain.gain.setValueAtTime(0.0, ac.currentTime);
+    gain.gain.linearRampToValueAtTime(0.55, ac.currentTime+0.06);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+    osc1.connect(dist); osc2.connect(dist); dist.connect(gain); gain.connect(ac.destination);
+    osc1.start(ac.currentTime); osc2.start(ac.currentTime);
+    osc1.stop(ac.currentTime+dur); osc2.stop(ac.currentTime+dur);
+    const buf = ac.createBuffer(1, ac.sampleRate*0.3, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random()*2-1)*Math.pow(1-i/data.length,2.5);
+    const noise = ac.createBufferSource(), ngain = ac.createGain(), filter = ac.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 90;
+    noise.buffer = buf; ngain.gain.setValueAtTime(1.2, ac.currentTime); ngain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.3);
+    noise.connect(filter); filter.connect(ngain); ngain.connect(ac.destination); noise.start(ac.currentTime);
+  } catch(e) {}
+}
+
+function playHitSound() {
+  try {
+    const ac = getAudioCtx(), osc = ac.createOscillator(), g = ac.createGain();
+    osc.type = 'square'; osc.frequency.setValueAtTime(120, ac.currentTime); osc.frequency.exponentialRampToValueAtTime(40, ac.currentTime+0.18);
+    g.gain.setValueAtTime(0.4, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.22);
+    osc.connect(g); g.connect(ac.destination); osc.start(ac.currentTime); osc.stop(ac.currentTime+0.22);
+    const buf = ac.createBuffer(1, ac.sampleRate*0.12, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random()*2-1)*Math.pow(1-i/data.length,1.8);
+    const ns = ac.createBufferSource(), ng = ac.createGain();
+    ns.buffer = buf; ng.gain.setValueAtTime(0.35, ac.currentTime); ng.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.12);
+    ns.connect(ng); ng.connect(ac.destination); ns.start(ac.currentTime);
+  } catch(e) {}
+}
+
+function playDeathSound() {
+  try {
+    const ac = getAudioCtx(), dur = 2.5;
+    for (let h = 0; h < 3; h++) {
+      const osc = ac.createOscillator(), g = ac.createGain();
+      const startF = 80-h*18;
+      osc.type = h===0?'sawtooth':'sine';
+      osc.frequency.setValueAtTime(startF, ac.currentTime); osc.frequency.exponentialRampToValueAtTime(startF*0.15, ac.currentTime+dur);
+      g.gain.setValueAtTime(0.0, ac.currentTime); g.gain.linearRampToValueAtTime(0.4-h*0.1, ac.currentTime+0.1); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+      osc.connect(g); g.connect(ac.destination); osc.start(ac.currentTime); osc.stop(ac.currentTime+dur);
+    }
+    const buf = ac.createBuffer(1, ac.sampleRate*0.5, ac.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random()*2-1)*Math.pow(1-i/data.length,1.2);
+    const ns = ac.createBufferSource(), ng = ac.createGain(), lp = ac.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 200;
+    ns.buffer = buf; ng.gain.setValueAtTime(2.0, ac.currentTime); ng.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.5);
+    ns.connect(lp); lp.connect(ng); ng.connect(ac.destination); ns.start(ac.currentTime);
+  } catch(e) {}
+}
+
+// ============================================================
+// TITAN DEATH & RESPAWN
+// ============================================================
+function titanDeath() {
+  titanDead = true; titanRespawnTimer = TITAN_RESPAWN_FRAMES;
+  shakeIntensity = 30; playDeathSound();
+  const hx = spine[0].x, hy = spine[0].y;
+  const c = Math.round(80 * Q.particleMult);
+  const arr = [];
+  for (let i = 0; i < c; i++) {
+    const angle = Math.random()*Math.PI*2, speed = 3+Math.random()*12;
+    arr.push({ x: hx+(Math.random()-0.5)*60, y: hy+(Math.random()-0.5)*60, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed-3, life: 1, size: Math.random()*6+2, col: Math.random()<0.5?[220,205,168]:[255,200,100] });
+  }
+  spawnParticles(arr);
+}
+
+function tickTitan() {
+  if (!titanDead) return;
+  titanRespawnTimer--;
+  if (titanRespawnTimer <= 0) {
+    titanDead = false; titanHp = TITAN_MAX_HP;
+    attackAnim = 0; attackTimer = 0; attackCooldown = 60; hurtFlash = 0;
+    shakeIntensity = Math.max(shakeIntensity, 16);
+    const rx = 100+Math.random()*(W-200), ry = 100+Math.random()*(H-200);
+    spine.forEach((s, i) => { s.x = rx-i*d.spineSpacing*sc; s.y = ry; });
+    legsData.forEach(leg => {
+      const jt = spine[leg.si]||spine[spine.length-1];
+      leg.footX = jt.x+leg.side*60*sc; leg.footY = jt.y+50*sc;
+      leg.targetX = leg.footX; leg.targetY = leg.footY;
+    });
+    pickWanderTarget();
+    const c = Math.round(40 * Q.particleMult);
+    const arr = [];
+    for (let i = 0; i < c; i++) arr.push({ x: spine[0].x, y: spine[0].y, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12-2, life: 1, size: Math.random()*4+1, col: [200,169,110] });
+    spawnParticles(arr);
+    playRumble();
+  }
+}
+
+// ============================================================
+// TITAN DAMAGE
+// ============================================================
+function damageTitan(cx, cy) {
+  if (titanDead) return false;
+  const hx = spine[0].x, hy = spine[0].y;
+  const dx = cx-hx, dy = cy-hy;
+  if (Math.sqrt(dx*dx+dy*dy) > 38*sc) return false;
+  const dmg = 8+Math.floor(Math.random()*8);
+  titanHp = Math.max(0, titanHp-dmg);
+  hurtFlash = 18; shakeIntensity = Math.max(shakeIntensity, 8);
+  playHitSound();
+  const c = Math.round(16 * Q.particleMult);
+  const arr = [];
+  for (let i = 0; i < c; i++) arr.push({ x: hx, y: hy, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10-2, life: 1, size: Math.random()*3.5+1, col: [255,180,60] });
+  spawnParticles(arr);
+  if (titanHp <= 0) titanDeath();
+  return true;
+}
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  const hit = damageTitan(cx, cy);
+  if (!hit) {
+    triggerRumble();
+    const c = Math.round(14 * Q.particleMult);
+    const arr = [];
+    for (let i = 0; i < c; i++) arr.push({ x: cx, y: cy, vx: (Math.random()-0.5)*7, vy: (Math.random()-0.5)*7-1.5, life: 1, size: Math.random()*2.5+1, col: [200,169,110] });
+    spawnParticles(arr);
+  }
+});
+
+// ============================================================
+// DRAW HELPERS — HD: full shadows; Mobile: no shadows
+// ============================================================
+function limb(x1, y1, x2, y2, r1, r2, alpha = 1) {
+  const [br, bg, bb] = d.boneCol;
+  const [gr, gg, gb] = d.glowCol;
+  const hurt = hurtFlash > 0 && Math.floor(hurtFlash/2)%2===0;
+  const ang  = Math.atan2(y2-y1, x2-x1);
+  const perp = ang + Math.PI/2;
+  ctx.save();
+  if (Q.shadowBlur) { ctx.shadowBlur = 28; ctx.shadowColor = hurt ? `rgba(255,80,60,0.6)` : `rgba(${gr},${gg},${gb},0.45)`; }
+  ctx.globalAlpha = alpha;
+  const grd = ctx.createLinearGradient(x1, y1, x2, y2);
+  if (hurt) {
+    grd.addColorStop(0, 'rgba(255,160,100,1)'); grd.addColorStop(1, 'rgba(220,80,50,0.9)');
+  } else {
+    grd.addColorStop(0,   `rgba(${Math.min(255,br+70)},${Math.min(255,bg+65)},${Math.min(255,bb+55)},1)`);
+    grd.addColorStop(0.5, `rgba(${Math.min(255,br+30)},${Math.min(255,bg+25)},${Math.min(255,bb+18)},0.97)`);
+    grd.addColorStop(1,   `rgba(${br},${bg},${bb},0.9)`);
+  }
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.moveTo(x1+Math.cos(perp)*r1, y1+Math.sin(perp)*r1);
+  ctx.quadraticCurveTo((x1+x2)/2+Math.cos(perp)*(r1+r2)*0.6,(y1+y2)/2+Math.sin(perp)*(r1+r2)*0.6, x2+Math.cos(perp)*r2, y2+Math.sin(perp)*r2);
+  ctx.lineTo(x2-Math.cos(perp)*r2, y2-Math.sin(perp)*r2);
+  ctx.quadraticCurveTo((x1+x2)/2-Math.cos(perp)*(r1+r2)*0.6,(y1+y2)/2-Math.sin(perp)*(r1+r2)*0.6, x1-Math.cos(perp)*r1, y1-Math.sin(perp)*r1);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = hurt ? `rgba(255,200,140,0.7)` : `rgba(${Math.min(255,br+100)},${Math.min(255,bg+90)},${Math.min(255,bb+80)},0.55)`;
+  ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
+}
+
+function jnt(x, y, r = 4, alpha = 1) {
+  const [br, bg, bb] = d.boneCol;
+  const [gr, gg, gb] = d.glowCol;
+  const hurt = hurtFlash > 0 && Math.floor(hurtFlash/2)%2===0;
+  ctx.save();
+  if (Q.shadowBlur) { ctx.shadowBlur = 22; ctx.shadowColor = `rgba(${gr},${gg},${gb},1)`; }
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle   = hurt ? `rgba(255,170,100,1)` : `rgba(${Math.min(255,br+80)},${Math.min(255,bg+75)},${Math.min(255,bb+65)},1)`;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawFoot(fj, kj) {
+  const [cr, cg, cb] = d.boneCol;
+  const [gr, gg, gb] = d.glowCol;
+  const hurt   = hurtFlash > 0 && Math.floor(hurtFlash/2)%2===0;
+  const facing = kj.x > fj.x ? -1 : 1;
+  ctx.save();
+  ctx.globalAlpha = 0.85;
+  if (Q.shadowBlur) { ctx.shadowBlur = 10; ctx.shadowColor = `rgba(${gr},${gg},${gb},0.4)`; }
+  ctx.fillStyle   = hurt ? 'rgba(255,100,80,0.9)' : `rgba(${cr},${cg},${cb},0.88)`;
+  ctx.beginPath();
+  ctx.ellipse(fj.x+facing*8*sc, fj.y, 14*sc, 5*sc, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = hurt ? 'rgba(255,130,100,0.8)' : `rgba(${Math.min(255,cr+20)},${Math.min(255,cg+15)},${Math.min(255,cb+10)},0.8)`;
+  for (let ci = -1; ci <= 1; ci++) {
+    ctx.beginPath();
+    ctx.ellipse(fj.x+facing*18*sc+ci*4*sc, fj.y+sc, 3.5*sc, 2.5*sc, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ============================================================
+// DRAW HEALTH BAR
+// ============================================================
+function drawHealthBar() {
+  if (!showHealth) return;
+  const [gr2, gg2, gb2] = d.glowCol;
+  const bx  = spine[0].x;
+  const by  = spine[0].y - 20*sc - 30;
+  const barW = Math.max(55, 70*sc);
+  const barH = 6;
+  const hpRatio = titanHp / TITAN_MAX_HP;
+  const col = hpRatio > 0.6 ? [60,210,90] : hpRatio > 0.35 ? [220,180,40] : [220,60,40];
+
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.beginPath(); ctx.roundRect(bx-barW/2-1, by-1, barW+2, barH+2, 3); ctx.fill();
+  const barFill = barW * hpRatio;
+  const barGrd  = ctx.createLinearGradient(bx-barW/2, by, bx-barW/2+barFill, by);
+  barGrd.addColorStop(0, `rgba(${Math.min(255,col[0]+40)},${Math.min(255,col[1]+30)},${Math.min(255,col[2]+20)},0.9)`);
+  barGrd.addColorStop(1, `rgba(${col[0]},${col[1]},${col[2]},0.75)`);
+  ctx.fillStyle = barGrd;
+  if (Q.shadowBlur) { ctx.shadowBlur = 6; ctx.shadowColor = `rgba(${col[0]},${col[1]},${col[2]},0.6)`; }
+  ctx.beginPath(); ctx.roundRect(bx-barW/2, by, barFill, barH, 2); ctx.fill();
+  ctx.shadowBlur  = 0;
+  ctx.strokeStyle = `rgba(${gr2},${gg2},${gb2},0.4)`;
+  ctx.lineWidth   = 0.5;
+  ctx.beginPath(); ctx.roundRect(bx-barW/2-1, by-1, barW+2, barH+2, 3); ctx.stroke();
+  const fontSize = Math.max(7, 9*Math.min(sc,1.3));
+  ctx.fillStyle = `rgba(${Math.min(255,gr2+40)},${Math.min(255,gg2+35)},${Math.min(255,gb2+25)},1)`;
+  ctx.font = `${fontSize}px 'Cinzel',serif`;
+  ctx.textAlign = 'center';
+  if (Q.shadowBlur) { ctx.shadowBlur = 18; ctx.shadowColor = `rgba(${gr2},${gg2},${gb2},0.9)`; }
+  ctx.fillText('Founding Titan', bx, by-5);
+  ctx.font = `${fontSize*0.8}px 'Cinzel',serif`;
+  ctx.fillStyle = `rgba(${Math.min(255,col[0]+60)},${Math.min(255,col[1]+50)},${Math.min(255,col[2]+40)},0.95)`;
+  if (Q.shadowBlur) { ctx.shadowBlur = 12; ctx.shadowColor = `rgba(${col[0]},${col[1]},${col[2]},0.8)`; }
+  ctx.fillText(`${titanHp} / ${TITAN_MAX_HP}`, bx, by+barH+9);
+  ctx.restore();
+}
+
+// ============================================================
+// DRAW TITAN (serpentine)
+// ============================================================
+function drawSerpentine() {
+  const [br, bg, bb] = d.boneCol;
+  const [gr, gg, gb] = d.glowCol;
+
+  // RIBS
+  for (let i = d.ribStart; i < d.ribEnd && i < d.spineCount-1; i += 2) {
+    const s = spine[i], ang = s.angle, perp = ang+Math.PI/2;
+    const t = (i-d.ribStart)/(d.ribEnd-d.ribStart);
+    const rLen = (32+Math.sin(t*Math.PI)*28)*sc;
+    const alpha = 0.55-t*0.15;
+    for (let sd = -1; sd <= 1; sd += 2) {
+      const ex  = s.x+Math.cos(perp)*sd*rLen*0.5;
+      const ey  = s.y+Math.sin(perp)*sd*rLen*0.5+6;
+      const ex2 = ex+Math.cos(perp)*sd*rLen*0.5+Math.cos(ang+Math.PI)*5;
+      const ey2 = ey+Math.sin(perp)*sd*rLen*0.5+Math.sin(ang+Math.PI)*5+12;
+      limb(s.x, s.y, ex, ey, 3.5*sc, 2.5*sc, alpha);
+      limb(ex, ey, ex2, ey2, 2.5*sc, 1.5*sc, alpha*0.7);
+    }
+  }
+
+  // LEGS
+  legsData.forEach(leg => {
+    const jt   = spine[leg.si]||spine[spine.length-1];
+    const dx   = leg.footX-jt.x, dy = leg.footY-jt.y;
+    const dist = Math.min(Math.sqrt(dx*dx+dy*dy),(leg.ul+leg.ll)*0.99);
+    const ang  = Math.atan2(dy, dx);
+    const cosA = (leg.ul*leg.ul+dist*dist-leg.ll*leg.ll)/(2*leg.ul*dist);
+    const a    = Math.acos(Math.max(-1,Math.min(1,cosA)));
+    const ex   = jt.x+Math.cos(ang-a)*leg.ul;
+    const ey   = jt.y+Math.sin(ang-a)*leg.ul;
+    limb(jt.x, jt.y, ex, ey, 5*sc, 4*sc, 0.8);
+    limb(ex, ey, leg.footX, leg.footY, 4*sc, 3*sc, 0.75);
+    jnt(jt.x, jt.y, 3.5*sc, 0.85);
+    jnt(ex, ey, 3*sc, 0.85);
+    drawFoot({x:leg.footX,y:leg.footY},{x:ex,y:ey});
+  });
+
+  // SPINE VERTEBRAE
+  for (let i = 0; i < d.spineCount-1; i++) {
+    const s = spine[i], n = spine[i+1];
+    const t = i/d.spineCount;
+    const r = (5-t*2.5)*sc;
+    limb(s.x, s.y, n.x, n.y, r, r*(1-1/d.spineCount), 1-t*0.25);
+    if (i%2===0) {
+      const ang = s.angle+Math.PI/2;
+      const nl  = (10-t*5)*sc;
+      for (let sd = -1; sd <= 1; sd += 2) {
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.strokeStyle = `rgba(${Math.min(255,br+30)},${Math.min(255,bg+25)},${Math.min(255,bb+20)},1)`;
+        ctx.lineWidth = sc; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x+Math.cos(ang)*sd*nl, s.y+Math.sin(ang)*sd*nl); ctx.stroke();
+        ctx.restore();
+      }
+    }
+    if (i%4===0) jnt(spine[i].x, spine[i].y, 3*sc, 0.9);
+  }
+
+  // HEAD
+  const h = spine[0], nx = spine[1]||spine[0];
+  const hang = Math.atan2(h.y-nx.y, h.x-nx.x);
+  let headOffX = 0, headOffY = 0;
+  if (attackAnim===2) {
+    const prog = Math.min(1, attackTimer/10);
+    const lunge = Math.sin(prog*Math.PI)*30*sc;
+    headOffX = Math.cos(hang)*lunge; headOffY = Math.sin(hang)*lunge;
+  }
+
+  const hurtPulse = hurtFlash>0 && Math.floor(hurtFlash/2)%2===0;
+  ctx.save();
+  ctx.translate(h.x+headOffX, h.y+headOffY);
+  ctx.rotate(hang);
+  ctx.globalAlpha = 1;
+  if (Q.shadowBlur) {
+    ctx.shadowBlur  = 40;
+    ctx.shadowColor = attackAnim===2 ? `rgba(255,80,40,1.0)` : `rgba(${gr},${gg},${gb},0.9)`;
+  }
+
+  // Skull
+  const hsGrd = ctx.createRadialGradient(8*sc,-3*sc,2,10*sc,-2*sc,26*sc);
+  if (hurtPulse) {
+    hsGrd.addColorStop(0,'rgba(255,120,80,0.95)'); hsGrd.addColorStop(1,'rgba(160,40,20,0.85)');
+  } else if (attackAnim===2) {
+    hsGrd.addColorStop(0,'rgba(255,220,120,0.97)'); hsGrd.addColorStop(0.5,`rgba(${br},${bg},${bb},0.92)`); hsGrd.addColorStop(1,`rgba(${Math.max(0,br-40)},${Math.max(0,bg-35)},${Math.max(0,bb-30)},0.82)`);
+  } else {
+    hsGrd.addColorStop(0,`rgba(${Math.min(255,br+60)},${Math.min(255,bg+50)},${Math.min(255,bb+40)},0.97)`); hsGrd.addColorStop(0.6,`rgba(${br},${bg},${bb},0.92)`); hsGrd.addColorStop(1,`rgba(${Math.max(0,br-40)},${Math.max(0,bg-35)},${Math.max(0,bb-30)},0.82)`);
+  }
+  ctx.fillStyle = hsGrd;
+  ctx.beginPath(); ctx.ellipse(10*sc,-3*sc,24*sc,17*sc,0,0,Math.PI*2); ctx.fill();
+
+  // Jaw
+  const jawOpen = attackAnim===1?attackTimer/18:attackAnim===2?1.0:attackAnim===3?Math.max(0,1-attackTimer/15):0;
+  ctx.fillStyle = hurtPulse?'rgba(200,60,30,0.88)':`rgba(${Math.max(0,br-25)},${Math.max(0,bg-22)},${Math.max(0,bb-18)},0.9)`;
+  ctx.beginPath(); ctx.moveTo(-6*sc,5*sc); ctx.quadraticCurveTo(10*sc,(22+jawOpen*16)*sc,25*sc,5*sc); ctx.closePath(); ctx.fill();
+
+  // Eye socket
+  ctx.fillStyle = `rgba(${gr},${gg},${gb},0.35)`;
+  ctx.beginPath(); ctx.ellipse(15*sc,-4*sc,5.5*sc,4.5*sc,0,0,Math.PI*2); ctx.fill();
+
+  // Eye glow
+  const eyeR = attackAnim!==0?255:gr, eyeG = attackAnim!==0?40:gg, eyeB = attackAnim!==0?30:gb;
+  ctx.fillStyle = `rgba(${eyeR},${eyeG},${eyeB},0.97)`;
+  if (Q.shadowBlur) { ctx.shadowBlur = 32; ctx.shadowColor = `rgba(${eyeR},${eyeG},${eyeB},1)`; }
+  ctx.beginPath(); ctx.arc(15*sc,-4*sc,2.2*sc,0,Math.PI*2); ctx.fill();
+
+  // Teeth
+  const toothLen = (11+jawOpen*8)*sc;
+  ctx.fillStyle = `rgba(${Math.min(255,br+50)},${Math.min(255,bg+45)},${Math.min(255,bb+35)},0.85)`;
+  if (Q.shadowBlur) { ctx.shadowBlur = attackAnim!==0?12:0; ctx.shadowColor = 'rgba(255,220,180,0.8)'; }
+  for (let ti = 0; ti < 5; ti++) {
+    ctx.beginPath();
+    ctx.moveTo(-4*sc+ti*7*sc,5*sc); ctx.lineTo(-2*sc+ti*7*sc,5*sc+toothLen);
+    ctx.lineTo( 2*sc+ti*7*sc,5*sc+toothLen); ctx.lineTo( 4*sc+ti*7*sc,5*sc);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  // Windup line
+  if (attackAnim===1 && mouse.inside && !cursorDead) {
+    ctx.save();
+    ctx.globalAlpha = 0.1*(attackTimer/18);
+    ctx.strokeStyle = 'rgba(255,60,30,1)';
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([4,8]);
+    ctx.beginPath(); ctx.moveTo(h.x,h.y); ctx.lineTo(mouse.rawX,mouse.rawY); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+  }
+
+  // TAIL
+  const last = spine[d.spineCount-1];
+  const prev = spine[d.spineCount-3]||spine[d.spineCount-2];
+  const tang = Math.atan2(last.y-prev.y, last.x-prev.x);
+  const tLen = d.tailLen*sc;
+  const tx   = last.x+Math.cos(tang)*tLen;
+  const ty2  = last.y+Math.sin(tang)*tLen;
+  limb(last.x,last.y,tx,ty2,3*sc,1*sc,0.45);
+  for (let ti = 1; ti <= d.tailSpikes; ti++) {
+    const t  = ti/(d.tailSpikes+1);
+    const mx = last.x+(tx-last.x)*t;
+    const my = last.y+(ty2-last.y)*t;
+    const pa = tang+Math.PI/2;
+    const sl = (14*(1-t))*sc;
+    for (let sd = -1; sd <= 1; sd += 2) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = `rgba(${br},${bg},${bb},1)`;
+      ctx.lineWidth = 2*sc; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(mx+Math.cos(pa)*sd*sl, my+Math.sin(pa)*sd*sl); ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
+// ============================================================
+// DRAW CURSOR
+// ============================================================
+function drawCursor() {
+  const cx = mouse.rawX, cy = mouse.rawY;
+
+  if (cursorDead) {
+    const prog = 1-cursorRespawnTimer/CURSOR_RESPAWN_FRAMES;
+    ctx.save();
+    ctx.globalAlpha = 0.08+prog*0.1;
+    ctx.strokeStyle = 'rgba(200,80,60,0.5)';
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([2,4]);
+    ctx.beginPath(); ctx.arc(cx,cy,8+prog*12,0,Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = 'rgba(200,169,110,0.4)';
+    ctx.lineWidth   = 2;
+    ctx.beginPath(); ctx.arc(cx,cy,14,-Math.PI/2,-Math.PI/2+prog*Math.PI*2); ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  const shielded = cursorShield > 0;
+  const hurt     = cursorHurtFlash > 0;
+  let col;
+  if (hurt)          col = '255,60,40';
+  else if (shielded) col = '120,200,255';
+  else if (mouse.clicking) col = '255,130,60';
+  else               col = '200,169,110';
+
+  ctx.save();
+
+  if (shielded) {
+    const sp = Math.sin(Date.now()*0.008)*0.3+0.5;
+    ctx.globalAlpha = sp*0.35;
+    ctx.strokeStyle = `rgba(${col},0.6)`;
+    ctx.lineWidth   = 1;
+    ctx.beginPath(); ctx.arc(cx,cy,16,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  if (Q.shadowBlur) { ctx.shadowBlur = hurt?30:18; ctx.shadowColor = `rgba(${col},0.7)`; }
+  ctx.strokeStyle = `rgba(${col},${hurt?1:0.85})`;
+  ctx.lineWidth   = hurt?2.5:1.5;
+  ctx.beginPath(); ctx.arc(cx,cy,hurt?10:6,0,Math.PI*2); ctx.stroke();
+
+  ctx.fillStyle = `rgba(${col},${hurt?0.8:0.4})`;
+  ctx.beginPath(); ctx.arc(cx,cy,2,0,Math.PI*2); ctx.fill();
+
+  const tDist = hurt?16:13, tLen = 5;
+  [[cx-tDist-tLen,cy,cx-tDist,cy],[cx+tDist,cy,cx+tDist+tLen,cy],[cx,cy-tDist-tLen,cx,cy-tDist],[cx,cy+tDist,cx,cy+tDist+tLen]].forEach(([x1,y1,x2,y2]) => {
+    ctx.strokeStyle = `rgba(${col},0.28)`;
+    ctx.lineWidth   = 1;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+
+  const pipR = 3, pipGap = 9;
+  const totalW = (CURSOR_MAX_HP-1)*pipGap;
+  for (let i = 0; i < CURSOR_MAX_HP; i++) {
+    const px = cx-totalW/2+i*pipGap, py = cy+20;
+    ctx.beginPath(); ctx.arc(px,py,pipR,0,Math.PI*2);
+    if (i < cursorHp) {
+      if (Q.shadowBlur) { ctx.shadowBlur = 8; ctx.shadowColor = `rgba(${col},0.7)`; }
+      ctx.fillStyle = `rgba(${col},0.85)`; ctx.fill();
+    } else {
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = `rgba(${col},0.22)`; ctx.lineWidth = 1; ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// ============================================================
+// PARTICLES
+// ============================================================
+function drawParticles() {
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x  += p.vx; p.y  += p.vy; p.vy += 0.06; p.life -= 0.022;
+    if (p.life <= 0) { particles.splice(i,1); continue; }
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    if (p.text) {
+      ctx.font = `bold ${Math.round(11+(1-p.life)*4)}px 'Cinzel',serif`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = `rgba(${p.col[0]},${p.col[1]},${p.col[2]},1)`;
+      if (Q.shadowBlur) { ctx.shadowBlur = 14; ctx.shadowColor = `rgba(${p.col[0]},${p.col[1]},${p.col[2]},1)`; }
+      ctx.fillText(p.text, p.x, p.y);
+    } else {
+      ctx.fillStyle = `rgba(${p.col[0]},${p.col[1]},${p.col[2]},1)`;
+      if (Q.shadowBlur) { ctx.shadowBlur = 8; ctx.shadowColor = `rgba(${p.col[0]},${p.col[1]},${p.col[2]},1)`; }
+      ctx.fillRect(p.x-p.size/2, p.y-p.size/2, p.size, p.size);
+    }
+    ctx.restore();
+  }
+}
+
+// ============================================================
+// BACKGROUND — HD: more stars, larger glow; Mobile: fewer
+// ============================================================
+const bgStars = Array.from({ length: Q.starCount }, () => ({
+  x: Math.random()*W, y: Math.random()*H,
+  a: Math.random()*0.2+0.03,
+  r: Math.random()*1+0.2,
+}));
+
+function drawBackground() {
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, W, H);
+  bgStars.forEach(s => {
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(220,220,220,${s.a})`; ctx.fill();
+  });
+  // Only draw atmospheric glow on desktop
+  if (Q.shadowBlur) {
+    const [gr, gg, gb] = d.glowCol;
+    const head = spine[0];
+    const grd  = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, Q.glowRadius);
+    grd.addColorStop(0, `rgba(${gr},${gg},${gb},0.07)`);
+    grd.addColorStop(1, 'transparent');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
+  }
+}
+
+// ============================================================
+// STATUS TEXT
+// ============================================================
+const statusEl  = document.getElementById('status');
+let   firstMove = false;
+document.addEventListener('mousemove', () => { if (!firstMove) firstMove = true; }, { once: true });
+window.addEventListener('touchstart',  () => { if (!firstMove) firstMove = true; }, { once: true });
+
+function updateStatus() {
+  if (!firstMove) return;
+  if (titanDead) {
+    statusEl.style.opacity = '1'; statusEl.style.animation = 'none'; statusEl.style.color = '#c8a96e';
+    const pct = Math.round((1-titanRespawnTimer/TITAN_RESPAWN_FRAMES)*100);
+    statusEl.textContent = `— FOUNDING TITAN DEFEATED — Respawning ${pct}%…`;
+  } else if (cursorDead) {
+    statusEl.style.opacity = '1'; statusEl.style.animation = 'none'; statusEl.style.color = '#c84040';
+    statusEl.textContent = '— DEVOURED — Respawning…';
+  } else if (!mouse.inside) {
+    statusEl.style.opacity = '0.6'; statusEl.style.animation = 'fadePulse 3s ease-in-out infinite'; statusEl.style.color = '#5a4a35';
+    statusEl.textContent = 'Founding Titan Roams Freely — Return to be Hunted';
+  } else {
+    statusEl.style.opacity = '0'; statusEl.textContent = '';
+  }
+}
+
+// ============================================================
+// MAIN LOOP
+// ============================================================
+function loop() {
+  if (shakeIntensity > 0) {
+    shakeX = (Math.random()-0.5)*shakeIntensity;
+    shakeY = (Math.random()-0.5)*shakeIntensity;
+    shakeIntensity *= 0.86;
+    if (shakeIntensity < 0.1) shakeX = shakeY = shakeIntensity = 0;
+  }
+  if (hurtFlash > 0) hurtFlash--;
+
+  let targetX, targetY;
+  if (mouse.inside && !cursorDead) {
+    targetX = mouse.rawX; targetY = mouse.rawY;
+  } else {
+    if (--wanderTimer <= 0) pickWanderTarget();
+    const dx = wanderTX-spine[0].x, dy = wanderTY-spine[0].y;
+    if (Math.sqrt(dx*dx+dy*dy) < 35) pickWanderTarget();
+    targetX = wanderTX; targetY = wanderTY;
+  }
+
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
+  drawBackground();
+
+  const chaseSpeed = mouse.inside && !cursorDead && !titanDead ? 0.085 : 0.044;
+  updateSpine(targetX, targetY, chaseSpeed);
+  tickAttackAnim();
+  tickAttackAI();
+  tickCursor();
+  tickTitan();
+  updateStatus();
+
+  if (!titanDead) { drawSerpentine(); drawHealthBar(); }
+  drawParticles();
+  drawCursor();
+
+  ctx.restore();
+  requestAnimationFrame(loop);
+}
+
+// Init
+spine.forEach((s, i) => { s.x = W/2-i*d.spineSpacing*sc; s.y = H/2; });
+loop();
+</script>
+</body>
+</html>
